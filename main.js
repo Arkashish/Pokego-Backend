@@ -23,8 +23,8 @@ const mongoClient = new MongoClient("mongodb+srv://pokemon:pokemon1234@cluster0.
 	// dbname: "game"
 });
 
-let collections = {};
-let changeBattle = {};
+var collections = {};
+var changeBattle = {};
 
 app.get("/pokemon", async (req, res, next) => {
 	try {
@@ -45,9 +45,9 @@ app.get("/battle", async (req, res, next) => {
 
 io.on("connection", (socket) => {
 	console.log("A client has connected !");
-	changeBattle.on("change",(next) => {
-		io.on(socket.activeRoom).emit("refresh", next.fullDocument);
-	});
+	// changeBattle.on("change",(next) => {
+	// 	io.on(socket.activeRoom).emit("refresh", next.fullDocument);
+	// });
             // <h2 className="text-center">BattleId: {battleId}</h2>
 			socket.on("join", async (battleId) => {
 		try {
@@ -57,7 +57,7 @@ io.on("connection", (socket) => {
 				socket.emit("refresh", result);
 			} else {
 				let newBattle = await collections.battles.insertOne({
-					id: battleId,
+					_id: battleId,
 					playerOne: {
 						pokemon: {},
 					},
@@ -66,7 +66,10 @@ io.on("connection", (socket) => {
 					},
 				});
 
-				socket.emit("refresh", newBattle.ops[0]);
+				let newBattleData = await collections.battles.findOne({_id: newBattle.insertedId})
+				console.log(newBattleData);
+
+				socket.emit("refresh", newBattleData);
 				socket.join(battleId);
 				socket.activeRoom = battleId;
 			}
@@ -78,7 +81,7 @@ io.on("connection", (socket) => {
 	socket.on("select", async (player, pokemon) => {
 		try {
 			if (player == 1) {
-				await collections.battle.updateOne(
+				await collections.battles.updateOne(
 					{
 						_id: socket.activeRoom,
 					},
@@ -91,7 +94,7 @@ io.on("connection", (socket) => {
 					}
 				);
 			} else {
-				await collections.battle.updateOne(
+				await collections.battles.updateOne(
 					{
 						_id: socket.activeRoom,
 					},
